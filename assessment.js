@@ -1,4 +1,6 @@
-/* Pooya Malek · The Clarity Assessment · conversational diagnostic, static client-side flow */
+/* Pooya Malek · The Clarity Assessment · conversational diagnostic, static client-side flow
+   Mounted by app.js into the Mentorship "assessment" view. Logic and copy unchanged
+   from the original standalone page. Only the mount point and booking CTA wiring moved. */
 (function () {
 
   // ---- Lead capture config ----
@@ -40,7 +42,7 @@
         "In your next design review, lead with the call and the tradeoff, not the walkthrough. Make your reasoning the headline.",
         "Ask your manager one question: what would they need to see to consider you senior? Then go make that visible on purpose."
       ],
-      match: 'The <a href="resources.html#impact-over-output">Impact over Output</a> guide is the fastest way to start turning what you do into what people notice.'
+      match: 'The <a href="#/mentorship/resources/impact-over-output">Impact over Output</a> guide is the fastest way to start turning what you do into what people notice.'
     },
     framing: {
       badge: "Your gap: framing",
@@ -51,7 +53,7 @@
         "Rebuild your portfolio's lead project around one hard call, not a tour of screens.",
         "Practice the difference out loud until impact-framing is your default, not your edit."
       ],
-      match: 'Start with the <a href="resources.html#portfolio-decision-map">Portfolio Decision Map</a>. It turns a wall of screens into a story about decisions.'
+      match: 'Start with the <a href="#/mentorship/resources/portfolio-decision-map">Portfolio Decision Map</a>. It turns a wall of screens into a story about decisions.'
     },
     story: {
       badge: "Your gap: telling the story",
@@ -62,7 +64,7 @@
         "Tell that story in ninety seconds, out loud, until the reasoning carries it without the visuals.",
         "In your next interview, lead with that story before they even ask. Set the frame yourself."
       ],
-      match: 'The <a href="resources.html#interview-story-template">Interview Story Template</a> gives you the exact structure to make one project land.'
+      match: 'The <a href="#/mentorship/resources/interview-story-template">Interview Story Template</a> gives you the exact structure to make one project land.'
     },
     transition: {
       badge: "Your gap: the crossroads",
@@ -73,7 +75,7 @@
         "Name what you'd be giving up if you moved to management, and whether that trade is worth it to you.",
         "Explore the staff or lead-IC track before you assume management is the only way up."
       ],
-      match: 'This one\'s worth a real conversation. <a href="#" data-booking-link target="_blank" rel="noopener">A single session</a> is usually enough to see it clearly.'
+      match: 'This one\'s worth a real conversation. <a href="#" data-booking-link>A single session</a> is usually enough to see it clearly.'
     }
   };
 
@@ -122,7 +124,7 @@
   ];
 
   var stage, bar, state, totalSteps = QUESTIONS.length + 2;
-  function setBar(n) { bar.style.width = Math.round((n / totalSteps) * 100) + "%"; }
+  function setBar(n) { if (bar) bar.style.width = Math.round((n / totalSteps) * 100) + "%"; }
   function el(html) { var d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstChild; }
 
   function renderIntro() {
@@ -223,20 +225,19 @@
     });
   }
 
-  function renderResult() {
-    setBar(totalSteps);
-    var G = GAPS[computeGap()];
+  function resultMarkup(gapKey, urgency, badgeExtra) {
+    var G = GAPS[gapKey];
     var steps = G.plan.map(function (p, i) { return '<div class="plan-step"><span class="n">' + (i + 1) + '</span><p>' + p + '</p></div>'; }).join("");
     var primaryCta, secondaryCta;
-    if (state.urgency === "high") {
-      primaryCta = '<a class="btn solid" href="mailto:malek.pooya@gmail.com" data-booking-link target="_blank" rel="noopener">Book a session, let\'s fix this now <span class="arrow" aria-hidden="true">&rarr;</span></a>';
-      secondaryCta = '<a class="btn ghost" href="resources.html">Grab the free resources</a>';
+    if (urgency === "high") {
+      primaryCta = '<a class="btn solid" href="#" data-booking-link>Book a time, let\'s fix this now <span class="arrow" aria-hidden="true">&rarr;</span></a>';
+      secondaryCta = '<a class="btn ghost" href="#/mentorship/resources">Grab the free resources</a>';
     } else {
-      primaryCta = '<a class="btn solid" href="https://substack.com/@pooyamalek" target="_blank" rel="noopener">Get the thinking every two weeks <span class="arrow" aria-hidden="true">&#8599;</span></a>';
-      secondaryCta = '<a class="btn ghost" href="mailto:malek.pooya@gmail.com" data-booking-link target="_blank" rel="noopener">Or book a session</a>';
+      primaryCta = '<a class="btn solid" href="https://pooyamalek.substack.com" target="_blank" rel="noopener">Get the thinking every two weeks <span class="arrow" aria-hidden="true">&#8599;</span></a>';
+      secondaryCta = '<a class="btn ghost" href="#" data-booking-link>Or book a time</a>';
     }
-    stage.innerHTML = "";
-    var s = el('<div class="step result">' +
+    return '<div class="step result">' +
+      (badgeExtra || '') +
       '<span class="result-badge">' + G.badge + '</span>' +
       '<h2>' + G.name + '</h2>' +
       '<p class="read">' + G.read + '</p>' +
@@ -245,20 +246,47 @@
       '<p class="lead-note" id="leadNote" hidden></p>' +
       '<div class="result-cta">' + primaryCta + secondaryCta + '</div>' +
       '<div class="restart"><button id="restart">Retake the assessment</button></div>' +
-    '</div>');
+    '</div>';
+  }
+
+  function renderResult() {
+    setBar(totalSteps);
+    var gap = computeGap();
+    stage.innerHTML = "";
+    var s = el(resultMarkup(gap, state.urgency));
     stage.appendChild(s);
     if (window.applyBookingLinks) window.applyBookingLinks(s);
     document.getElementById('restart').addEventListener('click', function () { state = { i: -1, answers: [], urgency: "mid", email: "" }; renderIntro(); });
   }
 
-  function start() {
-    stage = document.getElementById('stage'); bar = document.getElementById('bar');
-    if (!stage || !bar) return; // this page doesn't host the live quiz, e.g. plan.html
+  // Entry point: app.js calls this when the assessment view mounts.
+  function start(stageEl, barEl) {
+    stage = stageEl; bar = barEl;
     state = { i: -1, answers: [], urgency: "mid", email: "" };
     renderIntro();
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 
-  // Exposed so plan.html can render a saved result without duplicating the gap data.
-  window.CLARITY_GAPS = GAPS;
+  // Renders a previously-saved result (no live quiz, no progress bar). Used by
+  // the Mentorship home "your saved plan" quick access.
+  function renderSavedPlan(container, saved) {
+    var G = GAPS[saved.gap];
+    if (!G) return false;
+    var when = new Date(saved.at || Date.now()).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+    var badge = '<p class="kicker">Your saved plan</p>';
+    var s = el(resultMarkup(saved.gap, saved.urgency, badge));
+    var fine = el('<p class="fineprint">Saved on ' + when + '. <a href="#/mentorship/assessment">Retake the assessment</a> any time, it only takes a few minutes.</p>');
+    s.appendChild(fine);
+    container.innerHTML = "";
+    container.appendChild(s);
+    if (window.applyBookingLinks) window.applyBookingLinks(s);
+    var restart = s.querySelector('#restart');
+    if (restart) restart.remove();
+    return true;
+  }
+
+  function getSavedPlan() {
+    try { return JSON.parse(localStorage.getItem('pm-assessment') || 'null'); } catch (e) { return null; }
+  }
+
+  window.ClarityAssessment = { start: start, renderSavedPlan: renderSavedPlan, getSavedPlan: getSavedPlan };
 })();
