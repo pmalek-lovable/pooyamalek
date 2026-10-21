@@ -1,6 +1,6 @@
 /* Pooya Malek · service worker: cache the app shell, offline fallback only.
    Bump CACHE_NAME on any shell change so clients pick up the new version. */
-var CACHE_NAME = 'pm-shell-v24';
+var CACHE_NAME = 'pm-shell-v40';
 var CORE_ASSETS = [
   '/',
   '/index.html',

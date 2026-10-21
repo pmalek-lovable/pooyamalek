@@ -13,7 +13,13 @@
   --g:clamp(1.15rem,4vw,3.5rem);
   --rail:200px;
   --ease:cubic-bezier(.2,.8,.2,1);
+  /* ---- Radius scale: three tiers, use the closest one rather than a new
+     hardcoded value. --radius for controls (buttons, inputs, pills, tabs),
+     --radius-md for cards/tiles/embeds/emphasis-blocks, --radius-lg for the
+     handful of big feature surfaces (CTA band, sheet, assessment card). ---- */
   --radius:10px;
+  --radius-md:16px;
+  --radius-lg:20px;
 
   /* ---- 12-step type scale: fluid between 375px and 1440px viewports.
      Unchanged from the prior system, this is a sizing scale, not a
@@ -41,8 +47,12 @@
    index.html). Light is kept working but tuned second, it's secondary. ---- */
 html[data-theme="dark"]{
   --bg:#0A0A0D; --surface:#121116; --raise:#17161C;
-  --ink:#F5F4F7; --ink-soft:#B6B3BE; --muted:#7B7885; --line:#26242D; --line-soft:#1E1D24;
-  --purple:#7C5CFF; --purple-2:#9A80FF; --wash:#1A1730; --btn-fg:#FFFFFF; --ok:#4ADE80;
+  --ink:#F5F4F7; --ink-soft:#B6B3BE; --muted:#83808C; --line:#26242D; --line-soft:#1E1D24;
+  /* --purple is darkened slightly from #7C5CFF so white button text on it
+     clears WCAG AA (4.5:1) at button text sizes, it was failing at 4.35:1.
+     --purple-press is a further-darkened shade for solid-button hover,
+     replacing a lighten-on-hover that dropped to 3.04:1. */
+  --purple:#704DFF; --purple-2:#9A80FF; --purple-press:#633DFF; --wash:#1A1730; --btn-fg:#FFFFFF; --ok:#4ADE80;
   --shadow:0 1px 0 rgba(255,255,255,.05) inset,0 20px 50px rgba(0,0,0,.5);
 }
 html[data-theme="light"]{
@@ -67,6 +77,13 @@ img{max-width:100%;display:block;}
 .wrap{max-width:var(--maxw);margin:0 auto;padding:0 var(--g);}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
 
+/* ---- Focus: one consistent, on-brand ring for every interactive element,
+   keyboard-only (:focus-visible) so mouse/touch users don't see it. A few
+   script-only focus targets (route root, quiz step) exist purely to reposition
+   keyboard/AT focus after content swaps, not to be seen as "focused" UI, so
+   they opt out explicitly further down. ---- */
+:focus-visible{outline:2px solid var(--purple-2);outline-offset:2px;border-radius:4px;}
+
 h1,h2,h3{font-family:var(--face);font-weight:800;margin:0;}
 h1{font-size:var(--s10);letter-spacing:var(--ls10);line-height:var(--lh10);}
 h2{font-size:var(--s9);letter-spacing:var(--ls9);line-height:var(--lh9);}
@@ -87,9 +104,19 @@ em{font-style:normal;color:var(--purple-2);font-weight:600;}
 .btn .arrow{transition:transform .2s var(--ease);}
 .btn:hover .arrow{transform:translate(3px,-3px);}
 .btn.solid{background:var(--purple);color:#fff;}
-.btn.solid:hover{background:var(--purple-2);transform:translateY(-1px);}
+.btn.solid:hover{background:var(--purple-press);transform:translateY(-1px);}
 .btn.ghost{background:transparent;color:var(--ink);border-color:var(--line);}
 .btn.ghost:hover{border-color:var(--purple);transform:translateY(-1px);}
+
+/* ---- Card: the shared surface every bordered tile on the site sits on
+   (resource rows, offer tiles, note cards, story cards, team blocks, book
+   covers). Add "card" alongside a component's own class to get this base
+   look, the component's own class then only needs its unique layout.
+   A few static, non-interactive surfaces (embeds, the assessment card, the
+   CTA band) intentionally don't use this, they token the same radius but
+   skip the hover-lift since nothing there is actionable. ---- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-md);transition:border-color .2s,transform .2s var(--ease),box-shadow .2s;}
+.card:hover{border-color:color-mix(in srgb,var(--purple) 45%,var(--line));transform:translateY(-3px);box-shadow:var(--shadow);}
 
 /* ---- App shell: top bar. Blurred translucent surface, hairline border. ---- */
 .topbar{position:sticky;top:0;z-index:70;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border-bottom:1px solid transparent;transition:border-color .3s;}
@@ -97,7 +124,6 @@ em{font-style:normal;color:var(--purple-2);font-weight:600;}
 .topbar-inner{display:flex;align-items:center;justify-content:space-between;height:64px;}
 .logo{font-family:var(--face);font-weight:800;font-size:var(--s5);letter-spacing:var(--ls5);}
 .topbar-actions{display:flex;align-items:center;gap:1rem;}
-.topbar-actions .tab-item-avatar{display:none;}
 .topbar-link{background:none;border:none;font-family:var(--face);font-weight:600;font-size:var(--s3);letter-spacing:var(--ls3);color:var(--ink-soft);cursor:pointer;padding:0;transition:color .2s;}
 .topbar-link:hover{color:var(--purple-2);}
 
@@ -124,8 +150,10 @@ em{font-style:normal;color:var(--purple-2);font-weight:600;}
 /* ---- Sub-nav: a segmented control on mobile, a left rail on desktop
    (see the 960px query), restyled but the same layout behavior. ---- */
 .tab-layout{display:flex;flex-direction:column;}
-.tab-layout #main{order:0;}
-.tab-layout .subnav{order:-1;}
+
+/* Rail-only chrome (logo, About/Get in touch) is desktop-only, see the
+   960px query below, mobile keeps the topbar and tabbar for these instead. */
+.rail-logo,.rail-bottom{display:none;}
 
 .subnav{position:sticky;top:64px;z-index:65;background:var(--bg);border-bottom:1px solid var(--line);}
 .subnav-inner{display:flex;justify-content:flex-start;padding:.7rem 0;overflow-x:auto;}
@@ -136,12 +164,19 @@ em{font-style:normal;color:var(--purple-2);font-weight:600;}
 .subnav-cta{flex-shrink:0;margin-left:.5rem;}
 
 /* ---- Sections ---- */
-section{padding:clamp(var(--sp-7),6vw,var(--sp-8)) 0 clamp(var(--sp-8),9vw,var(--sp-9));}
+section{padding:clamp(var(--sp-8),7vw,var(--sp-9)) 0 clamp(var(--sp-9),10vw,var(--sp-10));}
 .section-head{max-width:60ch;}
 .section-head h2{margin-top:.8rem;}
 
 /* ---- Hero ---- */
 .hero{padding:clamp(2.2rem,6vw,4rem) 0 clamp(1.8rem,4vw,2.6rem);}
+/* .hero already carries its own bottom padding, so whatever follows it
+   shouldn't also stack the full generic section top padding on top of
+   that (that was previously a "padding-top:0" inline style repeated on 7
+   different sections in views.js), a small deliberate gap instead of zero
+   so it doesn't read as abrupt. Scoped to plain .hero specifically,
+   .hub-head and .story-hero intentionally keep the full gap after them. */
+.hero + section{padding-top:clamp(var(--sp-5),4vw,var(--sp-6));}
 .hero h1{font-size:var(--s11);letter-spacing:var(--ls11);line-height:var(--lh11);max-width:15ch;margin-top:1.1rem;}
 .hero .sub{max-width:46ch;color:var(--ink-soft);font-size:var(--s5);letter-spacing:var(--ls5);line-height:var(--lh5);margin:1.4rem 0 0;}
 
@@ -160,33 +195,21 @@ section{padding:clamp(var(--sp-7),6vw,var(--sp-8)) 0 clamp(var(--sp-8),9vw,var(-
 .turn-stage{font-size:var(--s1);letter-spacing:var(--ls1);line-height:var(--lh1);text-transform:uppercase;font-weight:700;color:var(--muted);margin-bottom:.6rem;}
 .turn-was{font-size:var(--s3);letter-spacing:var(--ls3);line-height:var(--lh3);color:var(--ink-soft);}
 .turn-bridge{font-size:var(--s5);letter-spacing:var(--ls5);line-height:var(--lh5);font-weight:500;color:var(--ink-soft);margin:.75rem 0;max-width:36ch;}
-.turn-now{display:block;width:100%;font-family:var(--face);font-weight:800;font-size:var(--s8);letter-spacing:var(--ls8);line-height:1.2;color:#fff;background:var(--purple);border-radius:14px;padding:.55em .75em;margin-top:.9rem;}
+.turn-now{display:block;width:100%;font-family:var(--face);font-weight:800;font-size:var(--s8);letter-spacing:var(--ls8);line-height:1.2;color:#fff;background:var(--purple);border-radius:var(--radius-md);padding:.55em .75em;margin-top:.9rem;}
 
 /* ---- Stories: was/bridge/now turns, each a proper card (same surface,
    border, radius and hover lift as .rcard/.ocard/.note-card), laid out
    horizontally scrollable with a two-column split per card at desktop
-   (quote left, sentence and outcome right). Arrow controls sit beside the
-   kicker so they never fight the big heading for room and always land to
-   its right; mobile drops them and scrolls by touch instead. ---- */
+   (quote left, sentence and outcome right). No prev/next controls, this
+   scrolls by touch/trackpad/drag like the rest of the site's horizontal
+   strips. ---- */
 .stories-head{display:flex;flex-direction:column;gap:.6rem;}
 .stories-head h2{margin-top:0;}
-.stories-head-top{display:flex;justify-content:space-between;align-items:center;gap:1.5rem;}
-.stories-nav{display:none;gap:.5rem;flex-shrink:0;}
-.stories-arrow{width:44px;height:44px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--line);background:none;color:var(--ink);font-size:var(--s5);font-family:var(--face);cursor:pointer;transition:background .2s,border-color .2s,color .2s,opacity .2s;}
-.stories-arrow:hover{border-color:var(--purple);background:var(--purple);color:#fff;}
-.stories-arrow:disabled{opacity:.35;cursor:default;}
-.stories-arrow:disabled:hover{border-color:var(--line);background:none;color:var(--ink);}
-.stories{display:flex;gap:1.5rem;margin-top:1.6rem;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.stories{display:flex;gap:1.75rem;margin-top:2rem;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
 .stories::-webkit-scrollbar{display:none;}
-.stories .turn{
-  flex:0 0 min(480px,88vw);scroll-snap-align:start;margin:0;
-  background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:1.75rem;
-  transition:border-color .2s,transform .2s var(--ease),box-shadow .2s;
-}
-.stories .turn:hover{border-color:color-mix(in srgb,var(--purple) 45%,var(--line));transform:translateY(-3px);box-shadow:var(--shadow);}
+.stories .turn{flex:0 0 min(480px,88vw);scroll-snap-align:start;margin:0;padding:2rem;}
 .stories .turn-now{font-size:var(--s6);}
 @media(min-width:720px){
-  .stories-nav{display:flex;}
   .stories .turn{flex-basis:min(560px,88vw);display:grid;grid-template-columns:1fr 1.8fr;column-gap:2rem;align-items:start;}
   .stories .turn-was{grid-column:1;grid-row:1;}
   .stories .turn-bridge{grid-column:2;grid-row:1;margin:0;max-width:none;}
@@ -195,14 +218,12 @@ section{padding:clamp(var(--sp-7),6vw,var(--sp-8)) 0 clamp(var(--sp-8),9vw,var(-
 
 /* ---- Tiles: resources and the design work list render as a responsive
    grid of rounded cards, not flush rows. ---- */
-.grid-2{display:grid;gap:1rem;}
+.grid-2{display:grid;gap:1.25rem;}
 @media(min-width:720px){.grid-2{grid-template-columns:repeat(2,1fr);}}
 .rcard{
   display:flex;flex-direction:column;justify-content:space-between;gap:1.25rem;width:100%;text-align:left;
-  font-family:var(--face);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:1.5rem;
-  transition:border-color .2s,transform .2s var(--ease),box-shadow .2s;
+  font-family:var(--face);color:var(--ink);padding:1.75rem;
 }
-.rcard:hover{border-color:color-mix(in srgb,var(--purple) 45%,var(--line));transform:translateY(-3px);box-shadow:var(--shadow);}
 .rcard .t{font-weight:700;font-size:var(--s6);letter-spacing:var(--ls6);line-height:var(--lh6);}
 .rcard .m{font-size:var(--s3);letter-spacing:var(--ls3);color:var(--muted);margin-top:.4rem;max-width:56ch;}
 .rcard .gap-tag{font-size:var(--s1);letter-spacing:var(--ls1);text-transform:uppercase;color:var(--purple-2);font-weight:700;margin-top:.7rem;}
@@ -217,16 +238,15 @@ section{padding:clamp(var(--sp-7),6vw,var(--sp-8)) 0 clamp(var(--sp-8),9vw,var(-
 .case h2{max-width:22ch;}
 .case-block .k{font-size:var(--s1);letter-spacing:var(--ls1);text-transform:uppercase;color:var(--muted);margin-bottom:.6rem;}
 .case-block p{margin:0;color:var(--ink-soft);}
-.case-decision{display:block;font-family:var(--face);font-weight:700;font-size:var(--s7);letter-spacing:var(--ls7);line-height:1.3;color:#fff;background:var(--purple);border-radius:18px;padding:1.5rem 1.75rem;margin:1.2rem 0 0;}
+.case-decision{display:block;font-family:var(--face);font-weight:700;font-size:var(--s7);letter-spacing:var(--ls7);line-height:1.3;color:#fff;background:var(--purple);border-radius:var(--radius-md);padding:1.5rem 1.75rem;margin:1.2rem 0 0;}
 .case-out{display:flex;flex-wrap:wrap;gap:1.4rem 2.4rem;padding-top:1.6rem;margin-top:1.6rem;border-top:1px solid var(--line);}
 .case-out .n{font-family:var(--face);font-weight:800;font-size:var(--s6);letter-spacing:var(--ls6);color:var(--purple-2);}
 .case-out .l{font-size:var(--s2);color:var(--muted);margin-top:.3rem;max-width:24ch;}
 
 /* ---- Offer / ways to work: a responsive grid of tiles, one per offering ---- */
-.offer-grid{margin-top:1.6rem;display:grid;gap:1rem;}
+.offer-grid{margin-top:2rem;display:grid;gap:1.25rem;}
 @media(min-width:720px){.offer-grid{grid-template-columns:repeat(3,1fr);}}
-.ocard{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:1.5rem;transition:border-color .2s,transform .2s var(--ease),box-shadow .2s;}
-.ocard:hover{border-color:color-mix(in srgb,var(--purple) 45%,var(--line));transform:translateY(-3px);box-shadow:var(--shadow);}
+.ocard{display:flex;flex-direction:column;padding:1.75rem;}
 .ocard h2{font-size:var(--s6);letter-spacing:var(--ls6);line-height:var(--lh6);margin-top:0;}
 .ocard p{margin:.6rem 0 0;color:var(--ink-soft);font-size:var(--s3);max-width:58ch;}
 .ocard .who{font-size:var(--s2);color:var(--muted);margin-top:.9rem;}
@@ -248,7 +268,7 @@ section{padding:clamp(var(--sp-7),6vw,var(--sp-8)) 0 clamp(var(--sp-8),9vw,var(-
 /* ---- CTA band: the one full-color field on the site, now a rounded
    solid violet block instead of an edge-to-edge tint. ---- */
 .cta-band{background:transparent;}
-.cta-card{background:var(--purple);color:#fff;padding:clamp(2rem,6vw,3.6rem);border-radius:20px;}
+.cta-card{background:var(--purple);color:#fff;padding:clamp(2rem,6vw,3.6rem);border-radius:var(--radius-lg);}
 .cta-card .inner{max-width:42ch;}
 .cta-card h2{color:#fff;}
 .cta-card p{opacity:.92;font-size:var(--s5);margin:1.1rem 0 1.8rem;}
@@ -278,20 +298,23 @@ footer.foot{padding:clamp(2.6rem,6vw,4rem) 0 2.4rem;border-top:1px solid var(--l
   .reveal{opacity:1;transform:none;}
 }
 
-/* ---- Assessment: a page like any other, with a real card surface ---- */
-.asmt{padding:clamp(1rem,3vw,2rem) 0;}
-.asmt-card{max-width:640px;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:clamp(1.5rem,4vw,2.4rem);box-shadow:var(--shadow);}
-.progress{height:4px;background:var(--line);border-radius:2px;margin-bottom:2rem;overflow:hidden;}
+/* ---- Assessment: intro and every step share #assessmentArea, one
+   hero-liquid section for the whole flow (see renderMentorshipAssessment
+   in views.js and start() in assessment.js), not a hero handing off to a
+   separate bordered card lower on the page. Step content keeps a readable
+   max-width without boxing it in a card surface. ---- */
+.progress{height:4px;background:var(--line);border-radius:2px;margin-bottom:2rem;max-width:640px;overflow:hidden;}
 .progress span{display:block;height:100%;width:0;background:var(--purple);transition:width .4s var(--ease);}
-.step{animation:stepIn .35s var(--ease) both;}
+.step{max-width:640px;animation:stepIn .35s var(--ease) both;}
+.step:focus{outline:none;}
 @keyframes stepIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
 .pooya-line{display:flex;gap:.7rem;align-items:center;margin-bottom:1.3rem;}
 .pooya-line .av{width:28px;height:28px;border-radius:50%;flex-shrink:0;background:var(--purple);color:#fff;font-family:var(--face);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:var(--s2);}
 .pooya-line .who{font-size:var(--s1);letter-spacing:var(--ls1);text-transform:uppercase;color:var(--muted);}
 .q-text{font-family:var(--face);font-weight:700;font-size:var(--s7);letter-spacing:var(--ls7);line-height:var(--lh7);}
 .q-help{color:var(--muted);font-size:var(--s3);margin-top:.5rem;}
-.options{display:grid;gap:var(--sp-3);margin-top:1.6rem;}
-.opt{display:flex;align-items:center;gap:.9rem;text-align:left;width:100%;background:var(--bg);border:1.5px solid var(--line);border-radius:var(--radius);padding:1rem 1.1rem;cursor:pointer;font-family:var(--face);font-size:var(--s4);color:var(--ink);transition:border-color .2s,background .2s;}
+.options{display:grid;gap:var(--sp-4);margin-top:2rem;}
+.opt{display:flex;align-items:center;gap:.9rem;text-align:left;width:100%;background:var(--bg);border:1.5px solid var(--line);border-radius:var(--radius);padding:1.1rem 1.3rem;cursor:pointer;font-family:var(--face);font-size:var(--s4);color:var(--ink);transition:border-color .2s,background .2s;}
 .opt:hover{border-color:var(--purple);}
 .opt .dot{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--line);flex-shrink:0;transition:all .2s;}
 .opt:hover .dot{border-color:var(--purple);}
@@ -307,7 +330,7 @@ footer.foot{padding:clamp(2.6rem,6vw,4rem) 0 2.4rem;border-top:1px solid var(--l
 .center-block h1{font-size:var(--s9);letter-spacing:var(--ls9);line-height:var(--lh9);margin:0;}
 .field{display:flex;gap:.6rem;margin-top:1.6rem;flex-wrap:wrap;}
 .field input{flex:1;min-width:220px;border:1.5px solid var(--line);border-radius:var(--radius);padding:.8rem 1rem;font-family:var(--face);font-size:var(--s4);background:var(--bg);color:var(--ink);}
-.field input:focus{outline:none;border-color:var(--purple);}
+.field input:focus{border-color:var(--purple);}
 .fineprint{font-size:var(--s2);color:var(--muted);margin-top:1rem;}
 .result-badge{display:inline-block;font-size:var(--s1);letter-spacing:var(--ls1);text-transform:uppercase;color:var(--purple-2);font-weight:700;}
 .result h2{font-size:var(--s8);letter-spacing:var(--ls8);line-height:var(--lh8);margin:.5rem 0 0;}
@@ -342,7 +365,7 @@ footer.foot{padding:clamp(2.6rem,6vw,4rem) 0 2.4rem;border-top:1px solid var(--l
 .story-hero-text h1{font-size:var(--s10);letter-spacing:var(--ls10);line-height:var(--lh10);max-width:12ch;margin-top:.8rem;}
 .story-hero-text .lead{max-width:44ch;}
 .story-hero-photo{display:flex;justify-content:flex-start;}
-.story-hero-photo img{width:min(220px,60vw);aspect-ratio:4/5;object-fit:cover;border-radius:16px;}
+.story-hero-photo img{width:min(220px,60vw);aspect-ratio:4/5;object-fit:cover;border-radius:var(--radius-md);}
 @media(min-width:820px){.story-hero-grid{grid-template-columns:2fr 1fr;}.story-hero-photo{justify-content:flex-end;}}
 
 /* ---- Company list: bento-style blocks, one enlarged for the current
@@ -350,23 +373,15 @@ footer.foot{padding:clamp(2.6rem,6vw,4rem) 0 2.4rem;border-top:1px solid var(--l
    lopsided at narrow widths. ---- */
 .logos{border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
 .logos-label{font-size:var(--s1);letter-spacing:var(--ls1);text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:1.2rem;}
-.logos-grid{display:grid;grid-template-columns:repeat(2,1fr);grid-auto-rows:96px;grid-auto-flow:dense;gap:.9rem;}
+.logos-grid{display:grid;grid-template-columns:repeat(2,1fr);grid-auto-rows:96px;grid-auto-flow:dense;gap:1rem;}
 @media(min-width:640px){.logos-grid{grid-template-columns:repeat(4,1fr);}}
-.logo-block{display:flex;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:1.2rem 1.4rem;font-family:var(--face);font-weight:800;font-size:var(--s4);letter-spacing:var(--ls4);line-height:1.15;color:var(--ink);transition:border-color .2s,transform .2s var(--ease),box-shadow .2s;}
-.logo-block:hover{border-color:color-mix(in srgb,var(--purple) 45%,var(--line));transform:translateY(-3px);box-shadow:var(--shadow);}
+.logo-block{display:flex;align-items:center;padding:1.4rem 1.6rem;font-family:var(--face);font-weight:800;font-size:var(--s4);letter-spacing:var(--ls4);line-height:1.15;color:var(--ink);}
 @media(min-width:640px){
   .logo-block.big{grid-column:span 2;grid-row:span 2;font-size:var(--s7);align-items:flex-end;}
   .logo-block.wide{grid-column:span 2;}
   .logo-block.tall{grid-row:span 2;align-items:flex-end;}
 }
 
-/* ---- Testimonials: plain quotes, no italic serif ---- */
-.testi-grid{margin-top:1.6rem;}
-.testi-card{border-top:1px solid var(--line);padding:1.8rem 0;margin:0;}
-.testi-grid .testi-card:last-child{border-bottom:1px solid var(--line);}
-.testi-card blockquote{margin:0;font-family:var(--face);font-weight:600;font-size:var(--s5);letter-spacing:var(--ls5);line-height:var(--lh5);color:var(--ink);max-width:50ch;}
-.testi-card figcaption{margin-top:1.1rem;font-size:var(--s2);color:var(--muted);font-weight:600;}
-.ph-tag{font-weight:600;text-transform:uppercase;letter-spacing:.06em;font-size:var(--s1);color:var(--purple-2);margin-left:.3rem;}
 
 /* ---- Plan page ---- */
 .plan-empty{padding:clamp(2rem,8vw,4rem) 0;}
@@ -377,6 +392,7 @@ footer.foot{padding:clamp(2.6rem,6vw,4rem) 0 2.4rem;border-top:1px solid var(--l
 :root{--tabbar-h:88px;}
 #main{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom));}
 .view-root{min-height:1px;}
+.view-root:focus{outline:none;}
 .view-enter{animation:viewIn .3s var(--ease) both;}
 @keyframes viewIn{from{opacity:0;}to{opacity:1;}}
 .section-close{margin-top:2.4rem;padding-top:1.6rem;border-top:1px solid var(--line);color:var(--ink-soft);}
@@ -388,7 +404,7 @@ footer.foot{padding:clamp(2.6rem,6vw,4rem) 0 2.4rem;border-top:1px solid var(--l
   z-index:70;display:flex;align-items:center;gap:.25rem;
   background:color-mix(in srgb,var(--surface) 90%,transparent);
   backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);
-  border:1px solid var(--line);border-radius:16px;padding:.4rem;
+  border:1px solid var(--line);border-radius:var(--radius-md);padding:.4rem;
   box-shadow:var(--shadow);max-width:calc(100% - 2rem);
 }
 
@@ -397,15 +413,37 @@ footer.foot{padding:clamp(2.6rem,6vw,4rem) 0 2.4rem;border-top:1px solid var(--l
 .hub-head h1{font-size:var(--s11);letter-spacing:var(--ls11);line-height:var(--lh11);max-width:15ch;}
 .hub-head .sub{max-width:44ch;color:var(--muted);font-size:var(--s3);letter-spacing:var(--ls3);margin:var(--sp-7) 0 0;}
 .hero-actions{display:flex;flex-wrap:wrap;align-items:center;gap:1.6rem;margin-top:var(--sp-7);}
-.btn-textlink{display:inline-flex;align-items:center;gap:.4rem;font-weight:600;font-size:var(--s3);color:var(--ink);text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--line);transition:text-decoration-color .2s,color .2s;}
+
+/* ---- Hero credentials: fills the space beside the headline that used to
+   just be liquid-glow and nothing else, with real numbers instead of
+   decoration. Stacks as a row under the text on narrow/mid viewports (same
+   960px breakpoint the subnav rail collapses at), moves beside it on desktop. ---- */
+.hero-stats{display:flex;flex-wrap:wrap;gap:2rem 2.4rem;margin-top:var(--sp-8);padding-top:var(--sp-6);border-top:1px solid var(--line);}
+.hero-stats .stat{display:flex;flex-direction:column;gap:.3rem;}
+.hero-stats .n{font-family:var(--face);font-weight:800;font-size:var(--s6);letter-spacing:var(--ls6);line-height:1;color:var(--ink);white-space:nowrap;}
+.hero-stats .l{font-size:var(--s1);letter-spacing:var(--ls1);color:var(--muted);text-transform:uppercase;font-weight:700;}
+/* Deliberately wider than the site's usual 960px rail breakpoint: the
+   headline needs more room than that before it can afford to share a row
+   with the stats column without wrapping onto five cramped lines. */
+@media(min-width:1300px){
+  .hub-head .wrap{display:flex;align-items:center;gap:clamp(2.4rem,5vw,4.5rem);}
+  .hub-text{flex:1 1 auto;min-width:0;}
+  .hero-stats{flex-direction:column;flex-wrap:nowrap;gap:1.8rem;margin-top:0;padding:0 0 0 clamp(1.8rem,3vw,2.8rem);border-top:none;border-left:1px solid var(--line);flex-shrink:0;}
+  .hero-stats .n{font-size:var(--s8);}
+}
+.btn-textlink{display:inline-flex;align-items:center;gap:.4rem;font-weight:600;font-size:var(--s3);color:var(--ink);text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--line);transition:text-decoration-color .2s,color .2s;padding:.4rem 0;min-height:44px;background:none;border:none;font-family:inherit;cursor:pointer;}
 .btn-textlink:hover{color:var(--purple-2);text-decoration-color:var(--purple-2);}
 .btn-textlink .arrow{transition:transform .2s var(--ease);}
 .btn-textlink:hover .arrow{transform:translate(3px,-3px);}
+/* Purple by default rather than on hover, for the one action (booking a
+   time) that should read as the site's primary CTA everywhere it appears. */
+.btn-textlink.cta-purple{color:var(--purple-2);text-decoration-color:color-mix(in srgb,var(--purple-2) 35%,transparent);}
+.btn-textlink.cta-purple:hover{color:var(--purple-2);text-decoration-color:var(--purple-2);}
 
 /* ---- Books: cover-forward cards, hover reveals why it made the list ---- */
-.books-grid{display:grid;gap:1.5rem 1.2rem;margin-top:1.6rem;grid-template-columns:repeat(2,1fr);}
+.books-grid{display:grid;gap:1.75rem 1.4rem;margin-top:2rem;grid-template-columns:repeat(2,1fr);}
 @media(min-width:640px){.books-grid{grid-template-columns:repeat(3,1fr);}}
-.book-cover{position:relative;border-radius:16px;overflow:hidden;background:var(--surface);border:1px solid var(--line);aspect-ratio:2/3;transition:border-color .2s,transform .2s var(--ease),box-shadow .2s;}
+.book-cover{position:relative;border-radius:var(--radius-md);overflow:hidden;background:var(--surface);border:1px solid var(--line);aspect-ratio:2/3;transition:border-color .2s,transform .2s var(--ease),box-shadow .2s;}
 .book-cover img{width:100%;height:100%;object-fit:cover;display:block;}
 .book-card:hover .book-cover{border-color:color-mix(in srgb,var(--purple) 45%,var(--line));transform:translateY(-3px);box-shadow:var(--shadow);}
 .book-why{position:absolute;inset:0;display:flex;align-items:center;padding:1.3rem;background:color-mix(in srgb,var(--bg) 85%,var(--purple) 15%);opacity:0;transition:opacity .25s var(--ease);}
@@ -417,40 +455,47 @@ footer.foot{padding:clamp(2.6rem,6vw,4rem) 0 2.4rem;border-top:1px solid var(--l
 
 /* ---- Notes: bold typographic cards, no imagery (Substack doesn't expose
    unique per-post art, all posts share one generic fallback image) ---- */
-.notes-grid{display:grid;gap:1.1rem;margin-top:1.6rem;grid-template-columns:1fr;}
+.notes-grid{display:grid;gap:1.25rem;margin-top:2rem;grid-template-columns:1fr;}
 @media(min-width:640px){.notes-grid{grid-template-columns:repeat(3,1fr);}}
-.note-card{display:flex;flex-direction:column;justify-content:space-between;gap:2rem;min-height:190px;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:1.6rem;color:var(--ink);transition:border-color .2s,transform .2s var(--ease),box-shadow .2s;}
-.note-card:hover{border-color:color-mix(in srgb,var(--purple) 45%,var(--line));transform:translateY(-3px);box-shadow:var(--shadow);}
+.note-card{display:flex;flex-direction:column;justify-content:space-between;gap:2rem;min-height:190px;width:100%;text-align:left;padding:1.85rem;color:var(--ink);}
 .note-index{font-weight:800;font-size:var(--s2);letter-spacing:var(--ls2);color:var(--purple-2);}
 .note-card h3{margin:0;font-weight:700;font-size:var(--s6);letter-spacing:var(--ls6);line-height:1.2;}
 .note-foot{display:flex;align-items:center;justify-content:space-between;gap:1rem;}
 .note-foot small{color:var(--muted);font-size:var(--s1);letter-spacing:var(--ls1);}
 .note-foot .arrow{display:inline-block;transition:transform .2s var(--ease);color:var(--ink-soft);}
 .note-card:hover .note-foot .arrow{transform:translate(3px,-3px);color:var(--purple-2);}
-.notes-more{margin-top:1.6rem;}
+.notes-more{margin-top:2rem;}
 
 /* ---- Spotify embed (Vibes page): same bordered-frame treatment as the
    booking modal's Cal.com embed, for one consistent embed pattern. ---- */
-.spotify-embed{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface);}
+.spotify-embed{border:1px solid var(--line);border-radius:var(--radius-md);overflow:hidden;background:var(--surface);}
 .spotify-embed iframe{width:100%;height:480px;border:none;display:block;}
 
+/* ---- ADPList reviews embed (Story page): real reviews, same bordered-frame
+   treatment as the other embeds. Height matches ADPList's own widget, the
+   iframe's own content controls everything inside the frame. ---- */
+.adplist-embed{margin-top:1.6rem;border:1px solid var(--line);border-radius:var(--radius-md);overflow:hidden;box-shadow:var(--shadow);width:100%;max-width:650px;height:560px;}
+.adplist-embed iframe{width:100%;height:100%;border:none;display:block;}
+
 /* ---- Photo grid (Photography page): a simple masonry-ish tile grid. ---- */
-.photo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;}
+.photo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.25rem;}
 @media(min-width:720px){.photo-grid{grid-template-columns:repeat(3,1fr);}}
-.photo-tile{border-radius:16px;overflow:hidden;background:var(--surface);border:1px solid var(--line);}
+.photo-tile{border-radius:var(--radius-md);overflow:hidden;background:var(--surface);border:1px solid var(--line);}
 .photo-tile img{width:100%;height:100%;object-fit:cover;aspect-ratio:4/5;transition:transform .3s var(--ease);}
 .photo-tile:hover img{transform:scale(1.04);}
 
 /* ---- Sheet (mobile) / modal (desktop) ---- */
 .sheet-backdrop{position:fixed;inset:0;background:rgba(5,5,7,.6);z-index:80;opacity:0;transition:opacity .25s var(--ease);}
 .sheet-backdrop.in{opacity:1;}
-.sheet{position:fixed;left:0;right:0;bottom:0;z-index:81;background:var(--surface);border-top:1px solid var(--line);border-radius:20px 20px 0 0;box-shadow:var(--shadow);max-height:88vh;overflow-y:auto;transform:translateY(100%);transition:transform .3s var(--ease);padding:.6rem clamp(1.4rem,4vw,2.2rem) calc(2rem + env(safe-area-inset-bottom));}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:81;background:var(--surface);border-top:1px solid var(--line);border-radius:var(--radius-lg) var(--radius-lg) 0 0;box-shadow:var(--shadow);max-height:88vh;overflow-y:auto;transform:translateY(100%);transition:transform .3s var(--ease);padding:.6rem clamp(1.4rem,4vw,2.2rem) calc(2rem + env(safe-area-inset-bottom));}
 .sheet.in{transform:translateY(0);}
 .sheet-grab{width:36px;height:3px;background:var(--line);border-radius:2px;margin:.5rem auto 1.1rem;}
+.sheet-close{position:absolute;top:.9rem;right:1.1rem;width:40px;height:40px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);color:var(--ink-soft);font-size:1.5rem;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color .2s,color .2s;}
+.sheet-close:hover{border-color:var(--purple);color:var(--ink);}
 .sheet-body .kicker{margin-bottom:.4rem;}
 .sheet-body h2{font-size:var(--s7);letter-spacing:var(--ls7);}
 .sheet-resource .btn{margin-top:1.2rem;}
-.cal-embed{margin-top:1.2rem;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--bg);}
+.cal-embed{margin-top:1.2rem;border:1px solid var(--line);border-radius:var(--radius-md);overflow:hidden;background:var(--bg);}
 .cal-embed iframe{width:100%;height:min(70vh,640px);border:none;display:block;}
 
 /* ---- Disclosure: the collapsed "not for you if" detail inside the
@@ -465,12 +510,35 @@ footer.foot{padding:clamp(2.6rem,6vw,4rem) 0 2.4rem;border-top:1px solid var(--l
 .disclosure li{padding-left:1.6rem;position:relative;color:var(--ink-soft);font-size:var(--s3);}
 .disclosure li::before{content:"";position:absolute;left:0;top:.65em;width:12px;height:1px;background:var(--purple-2);}
 
+/* ---- Philosophy: the "what this actually is" block bridging the hero's
+   hook into the Stories proof. A quiet purple-tinted band (--wash), one of
+   two deliberate background shifts on the Mentorship home, the other being
+   .honest further down. Headline and rotator stack on narrow viewports,
+   split into two columns on wide ones (same reasoning as the hero's
+   .hub-text/.hero-stats split: give the second column real content instead
+   of leaving it as dead space next to a narrow left-aligned block). ---- */
+.philosophy{background:var(--wash);}
+/* Static by default (all four lines simply stack, real readable text no
+   matter what) so it degrades cleanly with no JS and under reduced motion.
+   wirePhilosophyRotator in app.js adds .is-live only when it's actually
+   going to crossfade between them, and only then does .rotator-line switch
+   to absolute stacking with opacity driving the swap. */
+.philosophy-rotator{margin-top:2rem;max-width:64ch;}
+.rotator-line{font-family:var(--face);font-weight:700;font-size:var(--s7);letter-spacing:var(--ls7);line-height:var(--lh7);color:var(--ink);margin:0 0 1.4rem;}
+.philosophy-rotator.is-live{position:relative;min-height:5.6rem;}
+.philosophy-rotator.is-live .rotator-line{position:absolute;top:0;left:0;right:0;margin:0;opacity:0;transition:opacity .6s var(--ease);}
+.philosophy-rotator.is-live .rotator-line.active{opacity:1;}
+@media(min-width:960px){
+  .philosophy .wrap{display:flex;align-items:center;gap:clamp(3rem,6vw,5.5rem);}
+  .philosophy .section-head{flex:1.1 1 0;}
+  .philosophy-rotator{flex:1 1 0;max-width:none;margin-top:0;border-left:1px solid var(--line-soft);padding-left:clamp(2rem,4vw,3rem);}
+}
+
 /* ---- Being honest: a distinct, always-expanded section (not a collapsed
-   accordion). Sits on a raised band, the one deliberate background shift
-   on the Mentorship home, to read as a pause rather than another item in
-   the same flat scroll. ---- */
+   accordion). Sits on a raised band, to read as a pause rather than
+   another item in the same flat scroll. ---- */
 .honest{background:var(--raise);}
-.honest-list{list-style:none;margin:1.8rem 0 0;padding:0;display:grid;gap:1.1rem;max-width:64ch;}
+.honest-list{list-style:none;margin:2rem 0 0;padding:0;display:grid;gap:1.3rem;max-width:64ch;}
 .honest-list li{padding-left:1.8rem;position:relative;color:var(--ink-soft);font-size:var(--s4);letter-spacing:var(--ls4);line-height:var(--lh4);}
 .honest-list li::before{content:"";position:absolute;left:0;top:.75em;width:14px;height:2px;background:var(--purple-2);}
 
@@ -481,24 +549,79 @@ footer.foot{padding:clamp(2.6rem,6vw,4rem) 0 2.4rem;border-top:1px solid var(--l
   .sheet,.sheet-backdrop,.story-hero-photo img{transition:none;animation:none;}
 }
 
-/* ---- Desktop: nav moves into the header, the floating bottom bar goes
-   away, subnav becomes a left rail, sheets become centered modals ---- */
+/* ---- Desktop: no top header, the logo and About/Get in touch move into
+   the left rail instead (see .rail below), subnav becomes a sticky column,
+   sheets become centered modals. Mobile keeps the topbar and bottom
+   tabbar entirely unchanged, this block only fires at 960px+. ---- */
 @media(min-width:960px){
-  .topbar-actions .tab-item-avatar{display:flex;}
+  .topbar{display:none;}
   .tabbar{display:none;}
   #main{padding-bottom:0;}
 
   .tab-layout{flex-direction:row;align-items:flex-start;gap:2.4rem;}
   .tab-layout #main{flex:1;min-width:0;}
-  .subnav{position:sticky;top:96px;z-index:1;width:var(--rail);flex:0 0 var(--rail);margin-left:var(--g);background:none;border-bottom:none;padding-top:1.6rem;}
+
+  /* One sticky column holding the logo, whichever subnav is active, and
+     the About/Get in touch pair pinned to the bottom via margin-top:auto,
+     min-height gives that auto margin a full-viewport column to push against. */
+  .rail{position:sticky;top:2rem;z-index:1;width:var(--rail);flex:0 0 var(--rail);margin-left:var(--g);display:flex;flex-direction:column;min-height:calc(100vh - 4rem);}
+  .rail-logo{display:block;margin-bottom:2rem;}
+
+  .subnav{background:none;border-bottom:none;}
   .subnav .wrap{padding:0;max-width:none;}
   .subnav-inner{display:block;overflow-x:visible;}
   .tab-switch{display:flex;position:relative;background:#251f43a8;border-radius:calc(var(--radius) + 6px);padding:.3rem;margin-bottom:1.6rem;}
   .subnav-group{display:flex;flex-direction:column;gap:.3rem;background:none;padding:0;}
   .subnav-item{text-align:left;padding:.6rem .9rem;}
   .subnav-item.active{background:var(--surface);}
-  .subnav-cta{width:100%;justify-content:center;margin-left:0;margin-top:1.4rem;}
+  .subnav-cta{width:100%;justify-content:flex-start;margin-left:0;margin-top:1.4rem;padding-left:.9rem;}
 
-  .sheet{left:50%;right:auto;bottom:auto;top:50%;transform:translate(-50%,-46%);width:min(560px,90vw);border-radius:20px;max-height:80vh;}
+  /* About + Get in touch: icon-only tiles side by side, the label only
+     appears as a small fade-in tag above the tile on hover/focus. */
+  .rail-bottom{margin-top:auto;padding-top:1.6rem;border-top:1px solid var(--line);display:flex;flex-direction:row;align-items:center;gap:1rem;}
+  .rail-about,.rail-hi{position:relative;display:flex;align-items:center;justify-content:center;width:60px;height:60px;flex-shrink:0;border-radius:var(--radius-md);padding:0;}
+  .rail-about .tab-avatar{width:60px;height:60px;border-radius:var(--radius-md);}
+  .rail-hi{background:var(--purple-2);border:none;cursor:pointer;}
+  .hi-icon{width:22px;height:22px;color:#FFFFFF;}
+
+  .tile-label{position:absolute;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);white-space:nowrap;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:.35rem .7rem;font-family:var(--face);font-size:var(--s2);font-weight:600;color:var(--ink);opacity:0;pointer-events:none;transition:opacity .18s ease;box-shadow:var(--shadow);}
+  .rail-about:hover .tile-label,.rail-about:focus-visible .tile-label,.rail-hi:hover .tile-label,.rail-hi:focus-visible .tile-label{opacity:1;}
+
+  .sheet{left:50%;right:auto;bottom:auto;top:50%;transform:translate(-50%,-46%);width:min(560px,90vw);border-radius:var(--radius-lg);max-height:80vh;}
   .sheet.in{transform:translate(-50%,-50%);}
 }
+
+/* ---- Design system reference (#/system, not linked from nav): every
+   sample renders through the site's real tokens/classes, see renderStyleGuide
+   in views.js. These sg-* rules are presentational scaffolding for that page
+   only, nothing here is reused by an actual site page. ---- */
+.sg-block{margin-top:1.6rem;}
+.sg-swatches{display:grid;gap:1.2rem;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));}
+.sg-swatch{display:flex;align-items:center;gap:.9rem;}
+.sg-swatch-color{width:44px;height:44px;border-radius:var(--radius-md);border:1px solid var(--line);flex-shrink:0;}
+.sg-swatch-name{font-family:var(--face);font-weight:700;font-size:var(--s3);color:var(--ink);}
+.sg-swatch-note{font-size:var(--s1);color:var(--muted);margin-top:.2rem;}
+
+.sg-type-scale{display:grid;gap:1.1rem;}
+.sg-type-row{display:flex;align-items:baseline;gap:1.4rem;border-top:1px solid var(--line);padding-top:1.1rem;}
+.sg-type-label{font-family:var(--face);font-weight:700;font-size:var(--s1);color:var(--muted);width:4.5rem;flex-shrink:0;}
+.sg-type-sample{font-weight:700;color:var(--ink);}
+
+.sg-space-scale{display:grid;gap:.8rem;}
+.sg-space-row{display:flex;align-items:center;gap:1.4rem;}
+.sg-space-bar{display:block;height:10px;background:var(--purple-2);border-radius:2px;}
+
+.sg-radius-list{display:grid;gap:1.2rem;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));}
+.sg-radius-item{display:flex;align-items:center;gap:1rem;}
+.sg-radius-box{width:56px;height:56px;background:var(--surface);border:1.5px solid var(--purple-2);flex-shrink:0;}
+
+.sg-row{display:flex;flex-wrap:wrap;align-items:center;gap:1rem;padding:1rem 0;border-top:1px solid var(--line);}
+.sg-row-note{font-size:var(--s2);color:var(--muted);}
+.sg-row-purple{background:var(--purple);padding:1.2rem;border-radius:var(--radius-md);border-top:none;}
+.sg-row-purple .sg-row-note{color:rgba(255,255,255,.75);}
+.sg-get-demo{display:inline-flex;width:auto;background:none;border:none;padding:0;}
+
+.sg-card-grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));}
+.sg-demo-card{padding:1.5rem;}
+.sg-demo-t{font-weight:700;color:var(--ink);margin-bottom:.4rem;}
+.sg-demo-m{font-size:var(--s2);color:var(--muted);}

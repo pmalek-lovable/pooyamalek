@@ -1,6 +1,8 @@
 /* Pooya Malek · The Clarity Assessment · conversational diagnostic, static client-side flow
-   Mounted by app.js into the Mentorship "assessment" view. Logic and copy unchanged
-   from the original standalone page. Only the mount point and booking CTA wiring moved. */
+   Mounted by app.js into the Mentorship "assessment" view, into #assessmentArea, the
+   same element that holds the intro pitch and CTA (see renderMentorshipAssessment in
+   views.js). start() replaces that element's own content in place once "Start" is
+   clicked, no separate card or hidden section elsewhere on the page. */
 (function () {
 
   // ---- Lead capture config ----
@@ -127,27 +129,23 @@
   function setBar(n) { if (bar) bar.style.width = Math.round((n / totalSteps) * 100) + "%"; }
   function el(html) { var d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstChild; }
 
-  function renderIntro() {
-    setBar(0); stage.innerHTML = "";
-    var s = el('<div class="step center-block">' +
-      '<p class="kicker">The Clarity Assessment</p>' +
-      '<h1>Let\'s find the one thing<br>keeping you at mid-level.</h1>' +
-      '<p class="lead">Seven honest questions, about three minutes. I\'ll read your answers the way I would in a session and give you a straight diagnosis, plus a plan you can actually run. No score to feel bad about.</p>' +
-      '<div class="field" style="justify-content:center;"><button class="btn solid" id="begin">Start the diagnosis <span class="arrow" aria-hidden="true">&rarr;</span></button></div>' +
-      '<p class="fineprint">Free. Takes a few minutes. Your answers stay on your device.</p>' +
-    '</div>');
-    stage.appendChild(s);
-    document.getElementById('begin').addEventListener('click', function () { state.i = 0; renderQuestion(); });
-  }
+  // Each render* function below replaces #stage's content wholesale, so the
+  // element that had focus (the option just clicked, the "begin" button) is
+  // gone afterward and the browser would otherwise silently drop focus to
+  // <body>, forcing a keyboard user to tab in from the top of the page for
+  // every question. Focusing the new .step (tabindex=-1, no visible ring,
+  // see .step:focus in styles.css) keeps the tab sequence where the user
+  // actually is; #stage's aria-live="polite" covers the screen-reader side.
+  function focusStep(s) { s.focus({ preventScroll: true }); }
 
   function renderQuestion() {
     var qi = state.i, Q = QUESTIONS[qi];
     setBar(qi + 1); stage.innerHTML = "";
     var opts = Q.options.map(function (o, idx) {
-      var sel = state.answers[qi] && state.answers[qi].idx === idx ? " sel" : "";
-      return '<button class="opt' + sel + '" data-idx="' + idx + '"><span class="dot" aria-hidden="true"></span><span>' + o.t + '</span></button>';
+      var isSel = state.answers[qi] && state.answers[qi].idx === idx;
+      return '<button class="opt' + (isSel ? " sel" : "") + '" data-idx="' + idx + '" aria-pressed="' + isSel + '"><span class="dot" aria-hidden="true"></span><span>' + o.t + '</span></button>';
     }).join("");
-    var s = el('<div class="step">' +
+    var s = el('<div class="step" tabindex="-1">' +
       '<div class="pooya-line"><span class="av">P</span><div><div class="who">Pooya asks</div></div></div>' +
       '<div class="q-text">' + Q.q + '</div>' +
       '<div class="q-help">' + Q.help + '</div>' +
@@ -156,13 +154,15 @@
       '<span class="count">Question ' + (qi + 1) + ' of ' + QUESTIONS.length + '</span></div>' +
     '</div>');
     stage.appendChild(s);
+    focusStep(s);
     s.querySelectorAll('.opt').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var idx = +btn.getAttribute('data-idx'), o = Q.options[idx];
         state.answers[qi] = { idx: idx, g: o.g, u: o.u };
         if (Q.urgency) state.urgency = o.u;
-        s.querySelectorAll('.opt').forEach(function (b) { b.classList.remove('sel'); });
+        s.querySelectorAll('.opt').forEach(function (b) { b.classList.remove('sel'); b.setAttribute('aria-pressed', 'false'); });
         btn.classList.add('sel');
+        btn.setAttribute('aria-pressed', 'true');
         setTimeout(function () { if (qi < QUESTIONS.length - 1) { state.i++; renderQuestion(); } else { renderGate(); } }, 260);
       });
     });
@@ -180,7 +180,7 @@
 
   function renderGate() {
     setBar(totalSteps - 1); stage.innerHTML = "";
-    var s = el('<div class="step center-block">' +
+    var s = el('<div class="step center-block" tabindex="-1">' +
       '<div class="pooya-line" style="justify-content:center;"><span class="av">P</span><div><div class="who">Almost there</div></div></div>' +
       '<h1>Your read is ready.</h1>' +
       '<p class="lead">I\'ve gone through your answers. Where should I send your diagnosis and plan, so you have it to come back to?</p>' +
@@ -192,6 +192,7 @@
       '<div class="nav-row" style="justify-content:center;"><button class="back" id="back">&larr; Back</button></div>' +
     '</div>');
     stage.appendChild(s);
+    focusStep(s);
     document.getElementById('back').addEventListener('click', function () { state.i = QUESTIONS.length - 1; renderQuestion(); });
     document.getElementById('gate').addEventListener('submit', function (e) {
       e.preventDefault();
@@ -236,7 +237,7 @@
       primaryCta = '<a class="btn solid" href="https://pooyamalek.substack.com" target="_blank" rel="noopener">Get the thinking every two weeks <span class="arrow" aria-hidden="true">&#8599;</span></a>';
       secondaryCta = '<a class="btn ghost" href="#" data-booking-link>Or book a time</a>';
     }
-    return '<div class="step result">' +
+    return '<div class="step result" tabindex="-1">' +
       (badgeExtra || '') +
       '<span class="result-badge">' + G.badge + '</span>' +
       '<h2>' + G.name + '</h2>' +
@@ -255,15 +256,34 @@
     stage.innerHTML = "";
     var s = el(resultMarkup(gap, state.urgency));
     stage.appendChild(s);
+    focusStep(s);
     if (window.applyBookingLinks) window.applyBookingLinks(s);
-    document.getElementById('restart').addEventListener('click', function () { state = { i: -1, answers: [], urgency: "mid", email: "" }; renderIntro(); });
+    document.getElementById('restart').addEventListener('click', function () {
+      state = { i: 0, answers: [], urgency: "mid", email: "" };
+      renderQuestion();
+    });
   }
 
-  // Entry point: app.js calls this when the assessment view mounts.
-  function start(stageEl, barEl) {
-    stage = stageEl; bar = barEl;
+  // Entry point: app.js calls this when the assessment view mounts, passing
+  // #assessmentArea, the same element that holds the intro pitch and
+  // "Start the diagnosis" CTA (see renderMentorshipAssessment in views.js).
+  // Starting the quiz replaces that element's own content in place with the
+  // progress bar and step mount, one area for the whole flow, not a hero
+  // handing off to a separate card somewhere else on the page.
+  function start(container) {
     state = { i: -1, answers: [], urgency: "mid", email: "" };
-    renderIntro();
+    var begin = document.getElementById('assessmentBegin');
+    if (begin) {
+      begin.addEventListener('click', function () {
+        container.innerHTML =
+          '<div class="progress" aria-hidden="true"><span id="bar"></span></div>' +
+          '<div id="stage" aria-live="polite"></div>';
+        stage = document.getElementById('stage');
+        bar = document.getElementById('bar');
+        state.i = 0;
+        renderQuestion();
+      });
+    }
   }
 
   // Renders a previously-saved result (no live quiz, no progress bar). Used by
