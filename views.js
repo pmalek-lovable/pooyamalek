@@ -188,7 +188,7 @@
     return '' +
     '<section class="hub-head hero-liquid">' + liquidCanvasTag() + '<div class="wrap">' +
       '<div class="hub-text">' +
-        '<h1 class="reveal">Find the one thing keeping you at <em>mid-level.</em></h1>' +
+        '<h1 class="reveal">Find the one thing keeping you at <em>mid-level.</em> (test)</h1>' +
       '</div>' +
       '<div class="hero-stats reveal d2">' + HERO_STATS.map(function (s) { return '<div class="stat"><span class="n">' + s.n + '</span><span class="l">' + s.l + '</span></div>'; }).join("") + '</div>' +
     '</div></section>' +
