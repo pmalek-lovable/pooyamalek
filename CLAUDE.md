@@ -8,7 +8,8 @@ Pooya's personal site: plain HTML, CSS and JavaScript with no build step. Netlif
 - One branch per change, named by type: `update/...`, `fix/...`, `content/...`, `experiment/...`.
 - Keep commits small. Messages describe what changed, in plain words.
 - Every change reaches `main` through a pull request. Pooya reviews the Netlify deploy preview, then merges.
-- Pooya pushes and opens pull requests in GitHub Desktop. Prepare the branch and the changes, then tell him what to review.
+- Claude pushes and opens pull requests using the `ship-change` skill (`.claude/skills/ship-change`). Pooya reviews the preview and merges.
+- If Claude can't push, Pooya publishes the branch and opens the pull request in GitHub Desktop.
 
 ## Undoing a mistake
 
