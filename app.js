@@ -6,6 +6,7 @@
   var sheetBackdrop = document.getElementById('sheetBackdrop');
   var sheet = document.getElementById('sheet');
   var sheetBody = document.getElementById('sheetBody');
+  var routeAnnouncer = document.getElementById('routeAnnouncer');
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var tabItems = document.querySelectorAll('.tab-item');
   var tabSwitches = document.querySelectorAll('.tab-switch');
@@ -29,21 +30,28 @@
     'design/personal': 'Personal projects · Pooya Malek',
     'about/story': 'About · Pooya Malek',
     'about/notes': 'Notes · Pooya Malek',
-    'about/vibes': 'Vibes · Pooya Malek',
-    'about/books': 'Books · Pooya Malek',
-    'about/photography': 'Photography · Pooya Malek'
+    'about/vibes': 'Listening · Pooya Malek',
+    'about/books': 'Reading · Pooya Malek',
+    'about/photography': 'Seeing · Pooya Malek',
+    'system/guide': 'Design system · Pooya Malek'
   };
 
   function parseRoute() {
     var raw = (location.hash || '').replace(/^#\/?/, '');
     var parts = raw.split('/').filter(Boolean);
-    var tab = parts[0] === 'design' ? 'design' : (parts[0] === 'about' ? 'about' : 'mentorship');
+    var tab = parts[0] === 'design' ? 'design' : (parts[0] === 'about' ? 'about' : (parts[0] === 'system' ? 'system' : 'mentorship'));
     var view = parts[1];
     var deep = parts[2];
     if (tab === 'mentorship') {
       if (['home', 'assessment', 'plan', 'resources', 'learn'].indexOf(view) === -1) view = 'home';
     } else if (tab === 'design') {
       if (['professional', 'personal'].indexOf(view) === -1) view = 'professional';
+    } else if (tab === 'system') {
+      // Not part of the public tab system on purpose: a living reference
+      // for the token/component system, reachable at #/system but not
+      // linked from the nav. setActiveTab/SUBNAVS just no-op for it since
+      // no tab-item or subnav carries data-tab="system".
+      view = 'guide';
     } else {
       if (['story', 'notes', 'vibes', 'books', 'photography'].indexOf(view) === -1) view = 'story';
     }
@@ -78,7 +86,9 @@
 
   function setActiveSubnav(nav, attr, view) {
     nav.querySelectorAll('.subnav-item').forEach(function (b) {
-      b.classList.toggle('active', b.getAttribute(attr) === view);
+      var on = b.getAttribute(attr) === view;
+      b.classList.toggle('active', on);
+      if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
     });
   }
 
@@ -102,6 +112,38 @@
     });
   }
 
+  // Crossfades the "it's X / it's Y" lines in the Mentorship philosophy
+  // block. Skipped entirely under reduced motion, in which case the lines
+  // just stay as the plain stacked static text they are by default (see
+  // .philosophy-rotator in styles.css), no information is JS-gated. Pauses
+  // on hover so a reader isn't fighting the fade to finish a line; returns
+  // a stop function so renderRoute can clear the interval before the DOM
+  // it targets gets torn down on the next navigation.
+  function wirePhilosophyRotator(root) {
+    var box = root.querySelector('.philosophy-rotator');
+    if (!box || reduceMotion) return null;
+    var lines = box.querySelectorAll('.rotator-line');
+    if (lines.length < 2) return null;
+    box.classList.add('is-live');
+    var i = 0, timer = null;
+    lines[0].classList.add('active');
+    function advance() {
+      lines[i].classList.remove('active');
+      i = (i + 1) % lines.length;
+      lines[i].classList.add('active');
+    }
+    function play() { if (!timer) timer = setInterval(advance, 3000); }
+    function pause() { clearInterval(timer); timer = null; }
+    play();
+    box.addEventListener('mouseenter', pause);
+    box.addEventListener('mouseleave', play);
+    return function stop() {
+      pause();
+      box.removeEventListener('mouseenter', pause);
+      box.removeEventListener('mouseleave', play);
+    };
+  }
+
   function wireResourceCards(root) {
     root.querySelectorAll('[data-resource]').forEach(function (card) {
       card.addEventListener('click', function () {
@@ -113,39 +155,10 @@
           '<h2>' + r.t + '</h2>' +
           '<p class="lead">' + r.m + '</p>' +
           '<a class="btn solid" href="#" onclick="return false">Download <span class="arrow" aria-hidden="true">&darr;</span></a>' +
-          '<p class="fineprint">This one isn\'t hooked up to a real file yet. Drop your PDF or Notion link into this card\'s action when it\'s ready.</p>' +
+          '<p class="fineprint">The real file isn\'t live yet. It\'s coming, this is a placeholder so you can see how it\'ll work.</p>' +
         '</div>');
       });
     });
-  }
-
-  // Wires the prev/next arrows next to a horizontally scrolling .stories
-  // strip: each click advances by one card's width, and the arrows disable
-  // themselves at either end so it's clear when you've run out of room.
-  function wireStoriesScroller(root) {
-    var scroller = root.querySelector('.stories');
-    var prev = root.querySelector('[data-stories-scroll="-1"]');
-    var next = root.querySelector('[data-stories-scroll="1"]');
-    if (!scroller || !prev || !next) return;
-
-    function step() {
-      var card = scroller.querySelector('.turn');
-      var gap = parseFloat(getComputedStyle(scroller).columnGap) || 0;
-      return card ? card.getBoundingClientRect().width + gap : scroller.clientWidth;
-    }
-    function updateButtons() {
-      var max = scroller.scrollWidth - scroller.clientWidth - 1;
-      prev.disabled = scroller.scrollLeft <= 0;
-      next.disabled = scroller.scrollLeft >= max;
-    }
-    prev.addEventListener('click', function () {
-      scroller.scrollBy({ left: -step(), behavior: reduceMotion ? 'auto' : 'smooth' });
-    });
-    next.addEventListener('click', function () {
-      scroller.scrollBy({ left: step(), behavior: reduceMotion ? 'auto' : 'smooth' });
-    });
-    scroller.addEventListener('scroll', updateButtons, { passive: true });
-    updateButtons();
   }
 
   // ---- Design hero liquid-glow: three metaball blobs merged with a
@@ -330,6 +343,8 @@
   // down and rebuilding the whole view for no visible change.
   var lastTab = null, lastView = null;
   var stopLiquid = null;
+  var stopRotator = null;
+  var isFirstRender = true;
 
   function renderRoute() {
     closeSheet();
@@ -345,6 +360,7 @@
 
     if (!stayingPut) {
       if (stopLiquid) { stopLiquid(); stopLiquid = null; }
+      if (stopRotator) { stopRotator(); stopRotator = null; }
       var view = window.Views[r.tab][r.view];
       viewRoot.innerHTML = view ? view(r.deep) : '';
       viewRoot.classList.remove('view-enter');
@@ -352,7 +368,7 @@
       viewRoot.classList.add('view-enter');
 
       if (isAssessment) {
-        window.ClarityAssessment.start(document.getElementById('stage'), document.getElementById('bar'));
+        window.ClarityAssessment.start(document.getElementById('assessmentArea'));
       } else if (r.tab === 'mentorship' && r.view === 'plan') {
         var saved = window.ClarityAssessment.getSavedPlan();
         var mount = document.getElementById('savedPlanMount');
@@ -362,9 +378,20 @@
       applyBookingLinks(viewRoot);
       wireResourceCards(viewRoot);
       wireDisclosures(viewRoot);
-      wireStoriesScroller(viewRoot);
       initReveal(viewRoot);
       if (r.tab === 'design' || r.tab === 'mentorship') stopLiquid = initLiquidCanvas(viewRoot);
+      stopRotator = wirePhilosophyRotator(viewRoot);
+
+      // The DOM node that had focus (a subnav button, a "Read" link) is
+      // gone now that innerHTML was replaced, so without this the browser
+      // silently drops focus to <body> and keyboard users have to tab in
+      // from the very top of the page again on every navigation. Route root
+      // is tabindex=-1 (programmatic-only), and the live region gives
+      // screen reader users the equivalent of a title announcement.
+      var pageTitle = TITLES[r.tab + '/' + r.view] || 'Pooya Malek';
+      if (!isFirstRender) viewRoot.focus({ preventScroll: true });
+      if (routeAnnouncer) routeAnnouncer.textContent = pageTitle;
+      isFirstRender = false;
     }
     lastTab = r.tab; lastView = r.view;
 
@@ -374,14 +401,30 @@
   }
 
   // ---- Sheet ----
+  // aria-modal="true" alone doesn't stop Tab from reaching the page behind
+  // the backdrop, browsers don't enforce that. Making everything else inert
+  // while the sheet is open both removes it from the tab order and hides it
+  // from the accessibility tree, which is what aria-modal is supposed to
+  // imply. Focus moves to the close button on open (a stable target, unlike
+  // the sheet's variable injected content) and back to whatever triggered
+  // the sheet on close, so keyboard position isn't lost either way.
+  var sheetCloseBtn = document.getElementById('sheetCloseBtn');
+  var INERT_TARGETS = [topbar, document.querySelector('.tab-layout'), document.querySelector('.foot'), tabbar].filter(Boolean);
   var sheetHistoryPushed = false;
+  var sheetOpener = null;
+
   function openSheet(html) {
+    sheetOpener = document.activeElement;
     sheetBody.innerHTML = html;
+    var heading = sheetBody.querySelector('h1,h2');
+    if (heading) { heading.id = 'sheetTitle'; sheet.setAttribute('aria-labelledby', 'sheetTitle'); }
     sheetBackdrop.hidden = false;
     sheet.hidden = false;
+    INERT_TARGETS.forEach(function (el) { el.inert = true; });
     requestAnimationFrame(function () {
       sheetBackdrop.classList.add('in');
       sheet.classList.add('in');
+      if (sheetCloseBtn) sheetCloseBtn.focus();
     });
     document.body.classList.add('sheet-open');
     if (!sheetHistoryPushed) {
@@ -395,12 +438,16 @@
     sheetBackdrop.classList.remove('in');
     sheet.classList.remove('in');
     document.body.classList.remove('sheet-open');
+    INERT_TARGETS.forEach(function (el) { el.inert = false; });
     setTimeout(function () { sheetBackdrop.hidden = true; sheet.hidden = true; }, reduceMotion ? 0 : 260);
+    if (sheetOpener && document.contains(sheetOpener)) sheetOpener.focus();
+    sheetOpener = null;
     if (sheetHistoryPushed && !skipHistory) { sheetHistoryPushed = false; history.back(); }
     sheetHistoryPushed = false;
   }
 
   sheetBackdrop.addEventListener('click', function () { closeSheet(); });
+  if (sheetCloseBtn) sheetCloseBtn.addEventListener('click', function () { closeSheet(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !sheet.hidden) closeSheet(); });
 
   window.addEventListener('popstate', function () {
@@ -429,7 +476,7 @@
     },
     openSayHelloSheet: function () {
       openSheet(
-        '<p class="kicker">Say hello</p>' +
+        '<p class="kicker">Get in touch</p>' +
         '<h2>Let\'s talk.</h2>' +
         '<p class="lead">Questions, feedback, or a project you want to run by me. Pick whatever\'s easiest.</p>' +
         '<div class="hero-actions" style="margin-top:1.4rem;">' +

@@ -1,0 +1,8 @@
+# Files Git should never track or send to GitHub.
+
+# Local Claude settings and Claude skills: they stay on this Mac only
+.claude/
+skills/
+
+# Mac clutter
+.DS_Store
